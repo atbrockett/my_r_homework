@@ -11,10 +11,13 @@ head(my.data)
 
 # 3. Peek at the top few rows for only a few columns
 
+head(my.data[ , 2:5])
+head(my.data[ , c(trial_type, perc_cor, mt)])
 my.data[1:5, 2:5]
 
 # 4. How many rows does your data have?
 
+ nrow(my.data)
       # - 1072 rows
 
 # 5. Get a summary for every column
@@ -42,11 +45,14 @@ new.data <- my.data[,2:3]
 
 newdata.firstandlast <- new.data[c(1:10, 1063:1072),]
 
+newdata.firstandlast <- new.data[c(1:10,(nrow(new.data)-9)): nrow(new.data), ]
+
 # 11. Create a new data.frame that is a random sample of half of the rows.
 # HINT: ?sample
 
 newdata.sample <-new.data[sample(1:nrow(new.data), 536, replace = FALSE),]
 
+newdata.sample <- sample(x = nrow(new.data), size = nrow(my.data)/2, replace = FALSE)
 
 # 12. Find a comparison in your data that is interesting to make
 #     (comparing two sets of numbers)
