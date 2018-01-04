@@ -6,12 +6,20 @@ output: html_document
 1. Identify a column in your data that *should* be a factor (whether it is or not). Check to see whether R is already treating it as a factor, and if not, convert it into a factor.
 
 ```{r}
+rm(list = objects())
+data <- read.csv("Brockett_HW_Dataset.csv", header = TRUE)
+summary(data)
+
+# Trial type (Go vs. Stop) should be a factor and using summary() it appears that R is treating it as such
 
 ```
 
 2. What are the levels of the factor? How many occurrences of each level are there in the data?
    
 ```{r}
+summary(data)
+
+# The levels of the factor are 'go' and 'stop' and there are 536 occurrences of each level
 
 ```
 
@@ -19,12 +27,25 @@ output: html_document
 
 ```{r}
 
+data$trial_type_num <- as.numeric(data$trial_type)
+xtabs(~ trial_type + trial_type_num, data)
+
+# With trial_type as a number, GO is 1 and STOP is 2
+
 ```
 
 4. Create another column that is a copy of the factor column. Now, recode this new column so that the factor levels have new names. 
   (e.g., if you have a factor with levels "A" and "B", you could make a new column that had "condition A" and "condition B" as the level names instead)
 
 ```{r}
+
+data$trial_type_new <- data$trial_type # create new column
+
+levels(data$trial_type_new) <- c("A", "B") # rename levels in the new column A and B (previously GO and STOP)
+
+head(data) # check that factors are renamed
+
+xtabs(~ trial_type + trial_type_new, data) # check that factors are renamed relative original column
 
 ```
 
@@ -35,6 +56,21 @@ output: html_document
 
 ```{r}
 
+# relevel()
+
+data$trial_type_relevel <- relevel(data$trial_type, "stop") 
+xtabs(~ trial_type + trial_type_relevel, data)
+
+# reorder()
+
+data$trial_type_reorder <-  reorder(data$trial_type, data$perc_cor)
+xtabs(~ trial_type + trial_type_reorder, data)
+
+# factor()
+
+data$trial_type_factor <- factor(data$trial_type, levels = c("stop", "go"))
+xtabs(~ trial_type + trial_type_factor, data)
+
 ```
 
 6. Missing values
@@ -44,6 +80,10 @@ output: html_document
   d. If you have any NAs in your data, describe why you think those values are missing. Does there appear to be any systematic relationship between missingness and other variables in your data?
 
 ```{r}
+# a. I have no missing values (NA) in my data
+# b. I shouldn't have missing values, because this data was cleaned in the process of converting it from Neuroexplorer to the CSV file
+# c. N/A
+# d. N/A
 
 ```
 
