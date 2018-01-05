@@ -1,0 +1,78 @@
+---
+title: "Day 4 Homework"
+output: html_document
+---
+
+1. Find some aspect of your data that needs to be combined or merged in some way.  This could be a variety of things:
+  - multiple "sheets" in an Excel
+  - multiple files that should be combined into one data set
+  - properties that need to be merged in to one data set. For example:
+    - you have a table of subject properties (gender, handedness, etc.) that need to be merged into the item-level data
+    - you have other information on countries (population, etc.) that need to be merged in
+  - if you DON'T have this naturally-occurring issue, figure out a way to manufacture it. For example:
+    - split up your data into chunks
+    - make up some new table of information that you want to merge in
+  - Explain (in words) what you are trying to do
+  - Use binding/merging commands to accomplish this
+  - Complete at least ONE example of binding and ONE example of merging
+
+```{r}
+###################
+# Clear environment
+
+rm(list = objects())
+
+##############
+# Load library
+
+library(dplyr)
+
+##############
+# Read in data
+
+data <- read.csv("Brockett_HW_Dataset.csv", header = TRUE)
+summary(data)
+nrow(data)
+
+#####################################################
+#               Practice with Binding               #
+#####################################################
+# Split data into two dataframes based on trial type
+
+go <- droplevels(data[data$trial_type == "go",  ]) 
+nrow(go)
+go
+
+stop <- droplevels(data[data$trial_type == "stop",  ])
+nrow(stop)
+stop
+
+#############################
+# Reassemble data using dplyr
+
+data.reassembled <- bind_rows(go, stop) 
+summary(data.reassembled)
+
+data.reassembled$trial_type <- as.factor(data.reassembled$trial_type)
+summary(data.reassembled)
+nrow(data.reassembled)
+
+#####################################################
+#               Practice with Merging               #
+#####################################################
+
+#################################
+#Generate "fake" data to merge in
+
+new.info <- data.frame(trial_type = c("go", "stop", "freeze"),
+                        performance = c("correct", "incorrect", "no_response")
+                        )
+
+############
+# Merge data
+
+data.merge1 <- merge(data, new.info) # default all = FALSE
+nrow(data.merge1)
+summary(data.merge1)
+
+```

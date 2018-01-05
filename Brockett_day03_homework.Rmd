@@ -17,7 +17,10 @@ summary(data)
 2. What are the levels of the factor? How many occurrences of each level are there in the data?
    
 ```{r}
+
+levels(data$trial_type)
 summary(data)
+xtabs(~ trial_type, data)
 
 # The levels of the factor are 'go' and 'stop' and there are 536 occurrences of each level
 
@@ -42,6 +45,8 @@ xtabs(~ trial_type + trial_type_num, data)
 data$trial_type_new <- data$trial_type # create new column
 
 levels(data$trial_type_new) <- c("A", "B") # rename levels in the new column A and B (previously GO and STOP)
+# - the reason this function works is because there is actually a function called "levels() <- " which allows you to
+#   reasign names/ values. Similar to colnames() which has colnames() and "colmanes() <- "
 
 head(data) # check that factors are renamed
 
@@ -63,12 +68,13 @@ xtabs(~ trial_type + trial_type_relevel, data)
 
 # reorder()
 
-data$trial_type_reorder <-  reorder(data$trial_type, data$perc_cor)
+data$trial_type_reorder <-  reorder(data$trial_type, data$perc_cor) # in this case, I'm using the default function "mean"                                                                          because there are the same number of observations. What                                                                       reorder() does, is it goes through all factors and                                                                           orders based on what you set the function to (i,e.,                                                                          mean, length, etc.)
+
 xtabs(~ trial_type + trial_type_reorder, data)
 
 # factor()
 
-data$trial_type_factor <- factor(data$trial_type, levels = c("stop", "go"))
+data$trial_type_factor <- factor(data$trial_type, levels = c("stop", "go")) # this is the most concrete way to set the order                                                                               of your factors. Be careful that you don't add                                                                               something that is not already there, or that                                                                                 you don't forget something that is present in                                                                                the dataset as this will lead to the generation                                                                               of NA's
 xtabs(~ trial_type + trial_type_factor, data)
 
 ```
@@ -85,5 +91,8 @@ xtabs(~ trial_type + trial_type_factor, data)
 # c. N/A
 # d. N/A
 
+# summary(data) would be a good way to check for NA's
+# If you want to be more specific, use is.na() for a specific column
+# - data[is.na(data$trial_type), ]
 ```
 
