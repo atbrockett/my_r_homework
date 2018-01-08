@@ -1,0 +1,82 @@
+---
+title: "Day 5 Homework"
+output: html_document
+---
+
+0. Reload your data, and re-use the code you already have for getting things formatted nicely (columns renamed, factors relabeled, etc.)
+
+```{r}
+###################
+# Clear environment
+
+rm(list = objects())
+
+##############
+# Load library
+
+library(dplyr)
+library(tidyr)
+
+##############
+# Read in data
+
+data <- read.csv("Brockett_HW_Dataset.csv", header = TRUE)
+summary(data)
+nrow(data)
+
+mydata <- data
+
+```
+
+1. Aggregate (e.g., get mean/median/max/something) of some numerical variable, over one or more factors.  Use `group_by()` plus `summarize()` from the `dplyr` package. You may or may not need to reshape the data first!
+
+```{r}
+
+perc.cor.cell.means <- group_by(mydata, trial_type) %>% summarize(mean.perc_cor = mean(perc_cor, na.rm = TRUE))
+perc.cor.cell.means
+
+mt.cell.means <- group_by(mydata, trial_type) %>% summarize(mean.mt = mean(mt, na.rm = TRUE))
+mt.cell.means
+
+er.mt.cell.means <- group_by(mydata, trial_type) %>% summarize(mean.er_mt = mean(er_mt, na.rm = TRUE))
+er.mt.cell.means
+
+
+```
+
+2. Get your data into "long" (aka "tidy") format, if it isn't already
+
+```{r}
+
+mydata.long <- gather(mydata, performance, movement_time, mt:er_mt)
+mydata.long$performance <- as.factor(ifelse(test = mydata.long$performance == "mt", yes = "correct", no = "error"))
+
+# levels(mydata.long$performance) <- c("correct", "error") I'm confused why this doesn't work. I tried this to change the levels from mt and er_mt to correct and error, and while it said the code ran, it never made the changes to the column
+
+
+
+## Here I tried excluding perc_cor data because generally I only look at performance as it relates to movement time data. I think overall it worked, but I do have a question about the final bit of comment code
+
+mydata.mt <- select(mydata, animal_id, trial_type, mt, er_mt)
+
+mydata.mt.long <- gather(mydata.mt, performance, movement_time, mt:er_mt )
+mydata.mt.long$performance <- as.factor(ifelse(test = mydata.mt.long$performance == "mt", yes = "correct", no = "error"))
+mydata.mt.long
+
+# Alternatively I could have taken the original long data set (mydata.long) and just removed the trial_type column
+
+mydata.long$perc_cor <- NULL
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
