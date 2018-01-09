@@ -1,0 +1,237 @@
+---
+title: "Day 6 Homework"
+output: html_document
+---
+
+0. Reload your data, and re-use the code you already have for getting things formatted nicely (columns renamed, factors relabeled, etc.)
+
+```{r}
+
+###################
+# Clear environment
+
+rm(list = objects())
+
+##############
+# Load library
+
+library(dplyr)
+library(tidyverse)
+
+##############
+# Read in data
+
+data <- read.csv("Brockett_HW_Dataset.csv", header = TRUE)
+summary(data)
+nrow(data)
+
+mydata <- data
+
+# Convert data into long format using gather
+
+mydata.long <- gather(mydata, performance, movement_time, mt:er_mt)
+
+# Create factors replacing mt and er_mt with correct and error
+
+mydata.long$performance <- as.factor(ifelse(test = mydata.long$performance == "mt", yes = "correct", no = "error"))
+
+# Subset data to test perc_cor by animal and generate new dataframe for analysis
+
+perc.cor.by.animal <- group_by(mydata.long, trial_type, animal_id) %>% summarize(perc_cor = mean(perc_cor, na.rm = TRUE))
+as.data.frame(perc.cor.by.animal)
+
+# Subset data to test movement time by animal and generate new dataframe for analysis
+
+mt.means.by.animal <- group_by(mydata.long, trial_type, performance, animal_id) %>% summarize(mt = mean(movement_time, na.rm = TRUE))
+as.data.frame(mt.means.by.animal)
+
+```
+
+1. Run TWO DIFFERENT simple analyses or statistical tests, such as linear regression (`lm()`), logistic regression (`glm()`), correlation test (`cor.test()`), t-test (`t.test()`), or non-parametric tests (e.g., `wilcox.test()`).  For each of these:
+  - Describe why you are doing this analysis, i.e., what question is it answering?
+    -I'd like to know whether performance is better on GO or STOP trials, by animal rather than session so I subset the data into animals and ran a t-test. For movement time data, I wanted to do a repeated measures ANOVA looking at how movement time changes as a function of performance and trial_type.
+    
+    
+  - I won't judge you on statistical expertise!  (though I will make comments if I think I can be helpful)
+  - Report some key statistics from the analysis, using **inline** code. HINT: outside of an R code chunk, use `r codehere` format.
+  
+Analysis 1: The t-value is `r tval`, the degrees of freedom is `r df`, and the p-value is `r round(pval, 4)`.
+Analysis 2: The w value is `r wval`, the p-value is `r round(pval.w, 4)`.
+  
+  
+```{r}
+#ttest comparing percent correct on GO and STOP trials by animal
+
+perc_cor_ttest <- t.test(perc_cor ~ trial_type, paired = TRUE, data = perc.cor.by.animal)
+summary(perc_cor_ttest)
+
+# examine data
+names(perc_cor_ttest)
+str(perc_cor_ttest)
+
+# pull out features of ttest output
+tval <- perc_cor_ttest$statistic["t"]
+df <- perc_cor_ttest$parameter["df"]
+pval <- perc_cor_ttest$p.value
+
+#wilcox test comparing percent correct on GO and STOP trials by animal
+
+perc_cor_wilcoxtest <- wilcox.test(perc_cor ~ trial_type, data = perc.cor.by.animal)
+perc_cor_wilcoxtest
+
+# examine data
+names(perc_cor_wilcoxtest)
+str(perc_cor_wilcoxtest)
+
+# pull out features of ttest output
+wval <- perc_cor_ttest$statistic["W"]
+pval.w <- perc_cor_wilcoxtest$p.value
+
+
+```
+
+2. Pick a single numerical variable from your data.  Use `ggplot` to plot a histogram and a density plot (separately).
+   - Try some different values for `binwidth` for the histogram.
+   - Try some different values for `adjust` for the density plot.
+
+```{r}
+
+ggplot(mydata.long, aes(x = perc_cor)) + geom_histogram()
+ggplot(mydata.long, aes(x = perc_cor)) + geom_density()
+
+ggplot(mydata.long, aes(x = perc_cor)) + geom_histogram(binwidth = .01)
+ggplot(mydata.long, aes(x = perc_cor)) + geom_histogram(binwidth = .5)
+
+ggplot(mydata.long, aes(x = perc_cor)) + geom_density(adjust = 1)
+ggplot(mydata.long, aes(x = perc_cor)) + geom_density(adjust = .5)
+
+```
+
+3. How does the distribution look?  Try transforming the variable and try to get it to look more normal (i.e., more Gaussian).  If it already looks normal, do something to it to make it look non-normal.
+
+```{r}
+
+ggplot(mydata.long, aes(sqrt(x = perc_cor))) + geom_histogram(binwidth = .01)
+ggplot(mydata.long, aes(sqrt(x = perc_cor))) + geom_density()
+
+```
+
+4. Is there a factor that you can use to break up this variable into groups of observations?  If not, reshape your data so that there is, or create a factor if necessary.  Then, do the following:
+   - Plot it as a density plot, mapping `color` to the factor
+   - Same, but try using `fill` instead of `color`
+   - Same, using `linetype` instead of `color`
+   - Plot the data as a boxplot, with the factor as `x` and the numerical variable as `y`  HINT: use geom_boxplot
+
+```{r}
+
+ggplot(mydata.long, aes(x = perc_cor)) + 
+         geom_density(aes(color = trial_type))
+
+ggplot(mydata.long, aes(x = perc_cor)) + 
+         geom_density(aes(fill = trial_type), alpha = .5)
+
+ggplot(mydata.long, aes(x = perc_cor)) + 
+         geom_density(aes(linetype = trial_type))
+
+# Boxplots
+
+ggplot(mydata.long, aes(x = trial_type, y = perc_cor)) + geom_boxplot()
+
+```
+
+5. Create a bar plot of the cell means of some variable. Steps:
+   - Find a numerical variable and a grouping factor (this can be the same as those chosen above).
+   - Get the mean value of the numerical variable, broken down by the factor.  
+   - Plot this new aggregated data frame, using the "bar" geom.
+   - HINT: use stat = "identity" in the geom_bar() function.
+   
+```{r}
+
+ggplot(perc.cor.by.animal, aes(x = trial_type, y = perc_cor)) + 
+          geom_bar(stat ="identity")
+
+```
+   
+6. Create a bar plot that gets means broken down by TWO grouping factors.  For example, if Factor A has levels "red" and "blue" and Factor B has levels "north" and "south", get the cell means of "red north", "red south", "blue north", and "blue south."  
+   - Use the dplyr methods to get these means into a data frame format.
+   - Use the "bar" geom, but map the two variables to different graphical dimension.  One should be the "x" value, but the other should be mapped to some other visual property.
+
+```{r}
+
+ggplot(data = mt.means.by.animal, aes(x = performance, y = mt, fill = trial_type)) + 
+          geom_bar(stat = "identity", position = position_dodge()) +
+          theme_minimal() +
+          scale_fill_brewer(palette = "RdYlBu")
+  
+
+
+```
+
+7. Output all of the plots above (from problems 1-6) as a single PDF.
+
+```{r}
+
+pdf("Brockett_HW06_Plots.pdf", width = 10, height = 4)
+
+ggplot(mydata.long, aes(x = perc_cor)) + geom_histogram()
+ggplot(mydata.long, aes(x = perc_cor)) + geom_density()
+
+ggplot(mydata.long, aes(x = perc_cor)) + geom_histogram(binwidth = .01)
+ggplot(mydata.long, aes(x = perc_cor)) + geom_histogram(binwidth = .5)
+
+ggplot(mydata.long, aes(x = perc_cor)) + geom_density(adjust = 1)
+ggplot(mydata.long, aes(x = perc_cor)) + geom_density(adjust = .5)
+
+ggplot(mydata.long, aes(sqrt(x = perc_cor))) + geom_histogram(binwidth = .01)
+ggplot(mydata.long, aes(sqrt(x = perc_cor))) + geom_density()
+
+ggplot(mydata.long, aes(x = perc_cor)) + 
+         geom_density(aes(color = trial_type))
+
+ggplot(mydata.long, aes(x = perc_cor)) + 
+         geom_density(aes(fill = trial_type), alpha = .5)
+
+ggplot(mydata.long, aes(x = perc_cor)) + 
+         geom_density(aes(linetype = trial_type))
+
+# Boxplots
+
+ggplot(mydata.long, aes(x = trial_type, y = perc_cor)) + geom_boxplot()
+
+ggplot(perc.cor.by.animal, aes(x = trial_type, y = perc_cor)) + 
+          geom_bar(stat ="identity")
+
+ggplot(data = mt.means.by.animal, aes(x = performance, y = mt, fill = trial_type)) + 
+          geom_bar(stat = "identity", position = position_dodge()) +
+          theme_minimal() +
+          scale_fill_brewer(palette = "RdYlBu")
+
+dev.off()
+
+```
+
+8. Is there a better type of visualization for your data?  What numbers would you like to be able to visualize better?  Be as explicit as possible, and write some "pseudo-code" to ilustrate what you think you would like.
+
+I'd like to show a line graph with movement times on the y-axis, performance the color. This code gets me close, but seems to by graphing individual animals on the trial type and I don't want that. I'd also like to show standard error in the form of error bars
+
+```{r}
+
+# Attempt 1
+ggplot(data = mt.means.by.animal, aes(x = trial_type, y = mt, color = performance, group = performance)) + 
+          geom_line() +
+          geom_point() +
+          theme_minimal()
+
+# Attempt 2 - closer, but no error bars 
+
+ggplot(data = mt.means.by.animal, aes(x = trial_type, y = mt, color = performance, group = performance)) + 
+          stat_summary(fun.y = mean, geom = "point") +
+          stat_summary(fun.y = mean, geom = "line") +
+          #geom_errorbar(aes(ymin = , ymax = ), width = .1?) +
+          theme_minimal()
+
+
+```
+
+
+
