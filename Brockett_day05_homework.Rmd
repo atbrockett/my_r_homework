@@ -32,8 +32,10 @@ mydata <- data
 
 ```{r}
 
-perc.cor.cell.means <- group_by(mydata, trial_type) %>% summarize(mean.perc_cor = mean(perc_cor, na.rm = TRUE))
-perc.cor.cell.means
+perc.cor.cell.means <- group_by(mydata, trial_type, animal_id) %>% summarize(mean.perc_cor = mean(perc_cor, na.rm = TRUE))
+as.data.frame.vector(perc.cor.cell.means)
+
+t.test(mean.perc_cor ~ trial_type, paired = TRUE, data = perc.cor.cell.means)
 
 mt.cell.means <- group_by(mydata, trial_type) %>% summarize(mean.mt = mean(mt, na.rm = TRUE))
 mt.cell.means
@@ -48,11 +50,28 @@ er.mt.cell.means
 
 ```{r}
 
+# Convert data into long format using gather
+
 mydata.long <- gather(mydata, performance, movement_time, mt:er_mt)
+
+# Create factors replacing mt and er_mt with correct and error
+
 mydata.long$performance <- as.factor(ifelse(test = mydata.long$performance == "mt", yes = "correct", no = "error"))
 
-# levels(mydata.long$performance) <- c("correct", "error") I'm confused why this doesn't work. I tried this to change the levels from mt and er_mt to correct and error, and while it said the code ran, it never made the changes to the column
+# Subset data to test perc_cor by animal and generate new dataframe for analysis
 
+perc.cor.by.animal <- group_by(mydata.long, trial_type, animal_id) %>% summarize(perc_cor = mean(perc_cor, na.rm = TRUE))
+as.data.frame(perc.cor.by.animal)
+
+t.test(perc_cor ~ trial_type, paired = TRUE, data = perc.cor.by.animal)
+
+# Subset data to test movement time by animal and generate new dataframe for analysis
+
+mt.means.by.animal <- group_by(mydata.long, trial_type, performance, animal_id) %>% summarize(mt = mean(movement_time, na.rm = TRUE))
+as.data.frame(mt.means.by.animal)
+
+aov_mt = aov(mt ~ trial_type * performance + Error(animal_id/ (trial_type*performance)), data = mt.means.by.animal)
+summary(aov_mt)
 
 
 ## Here I tried excluding perc_cor data because generally I only look at performance as it relates to movement time data. I think overall it worked, but I do have a question about the final bit of comment code
