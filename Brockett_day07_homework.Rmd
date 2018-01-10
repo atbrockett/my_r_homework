@@ -1,0 +1,152 @@
+---
+title: "Day 7 Homework"
+output: html_document
+---
+
+Find three relationships in your data.  For each relationship, do the following:
+
+1. Verbally articulate the relationship you want to examine with a plot.
+
+      Comparison 1 - compare the distribution movement times by trial type
+      Comparison 2 - difference in movement times by trial type
+      Comparison 3 - difference in movement times by performance and trial type
+      
+
+2. Verbally identify what variables you want to map to each graphical dimension.
+
+      Comparison 1 - density plot percent cor on x-axis; mt of y-axis
+      Comparison 2 - boxplots showing 4 possible comparisons (x-axis trial types -whether correct or incorrect, y axis- mt)
+      Comparison 3 - line graph (x-axis: trial type, y-axis: movement times split by performance)
+      
+      
+3. Reshape your data as needed.
+
+```{r}
+
+###################
+# Clear environment
+
+rm(list = objects())
+
+##############
+# Load library
+
+library(dplyr)
+library(tidyverse)
+
+##############
+# Read in data
+
+data <- read.csv("Brockett_HW_Dataset.csv", header = TRUE)
+summary(data)
+nrow(data)
+
+mydata <- data
+
+# Convert data into long format using gather
+
+mydata.long <- gather(mydata, performance, movement_time, mt:er_mt)
+
+# Create factors replacing mt and er_mt with correct and error
+
+mydata.long$performance <- as.factor(ifelse(test = mydata.long$performance == "mt", yes = "correct", no = "error"))
+
+# Subset data to test perc_cor by animal and generate new dataframe for analysis
+
+perc.cor.by.animal <- group_by(mydata.long, trial_type, animal_id) %>% summarize(perc_cor = mean(perc_cor, na.rm = TRUE))
+as.data.frame(perc.cor.by.animal)
+
+# Subset data to test movement time by animal and generate new dataframe for analysis
+
+mt.means.by.animal <- group_by(mydata.long, trial_type, performance, animal_id) %>% summarize(mt = mean(movement_time, na.rm = TRUE))
+as.data.frame(mt.means.by.animal)
+
+```
+
+4. Use ggplot2 to create your graphs.
+
+```{r}
+
+# Comparison 1
+
+ggplot(mydata.long, aes(x = movement_time)) + 
+          geom_density(aes(fill = trial_type), alpha = .3) 
+
+
+
+# Comparison 2
+
+ggplot(data = mt.means.by.animal, aes(x = trial_type, y = mt, color = performance)) + 
+          geom_boxplot() 
+
+  
+
+# Comparison 3
+
+ggplot(data = mt.means.by.animal, aes(x = trial_type, y = mt, color = performance, group = performance)) + 
+          stat_summary(fun.y = mean, geom = "point") +
+          stat_summary(fun.y = mean, geom = "line") 
+ 
+
+
+```
+
+5. Fiddle with colors, axis labels, themes, etc. until the plot looks "publication ready" to you.  Try to change at least one thing per plot.
+
+```{r}
+
+# Comparison 1
+
+comp1 <- ggplot(mydata.long, aes(x = movement_time)) + 
+          geom_density(aes(fill = trial_type), alpha = .3) +
+          xlab("Movement Time (s)") +
+          ylab("Density") +
+          scale_fill_brewer(palette = "Set1", name = "Trail Type") 
+        
+
+print(comp1)
+
+# Comparison 2
+
+comp2 <- ggplot(data = mt.means.by.animal, aes(x = trial_type, y = mt, color = performance)) + 
+          geom_boxplot() +
+          xlab("Trial Type") +
+          ylab("Movement Time (s)") +
+          scale_color_brewer(palette = "Set1", name = "Performance") 
+
+print(comp2)   
+
+# Comparison 3
+
+library(Rmisc)
+
+mt_descriptives <- summarySEwithin(mt.means.by.animal, measurevar = "mt", withinvars = c("trial_type", "performance"), idvar = "animal_id")
+mt_descriptives
+
+
+comp3 <- ggplot(data = mt_descriptives, aes(x = trial_type, y = mt, color = performance, group = performance)) + 
+          stat_summary(fun.y = mean, geom = "point") +
+          stat_summary(fun.y = mean, geom = "line") +
+          geom_errorbar(width = .1, aes(ymin = mt - se, ymax = mt + se)) +
+          xlab("Trial Type") +
+          ylab("Movement Time") +
+          scale_color_brewer(palette = "Set1", name = "Performance")
+ 
+print(comp3)
+
+```
+
+6. Save all plots to a format that you could use in a paper.  HINT: PNG works well for pasting into Word documents.
+
+```{r}
+
+png()
+
+comp1
+comp2
+comp3
+
+dev.off()
+
+```
+
