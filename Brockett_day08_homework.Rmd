@@ -1,0 +1,89 @@
+---
+title: "Day 8 Homework"
+output: html_document
+---
+
+Find two repetitive things that you would like to be able to do with your data.  This can be something having to do with coding variables, or saving plots, or running an analysis multiple times on different subsets, etc. etc.  Just try to find something where you would normally need to "copy and paste" sections of code, varying only one or two things.  Figure out how to use a loop to accomplish this.  
+
+For BOTH of these things, take the following steps:
+
+1. Articulate what you want to do (verbally)
+
+Generate density graphs for percent correct and movement time columns
+
+2. Give some code that illustrates the "copy and paste" method.  This can just show a couple of steps.  That is, if you would be running through a bunch of iterations, just copy and paste a couple of times, not everything.
+
+```{r}
+
+###################
+# Clear environment
+
+rm(list = objects())
+
+##############
+# Load library
+
+library(dplyr)
+library(tidyverse)
+
+##############
+# Read in data
+
+data <- read.csv("Brockett_HW_Dataset.csv", header = TRUE)
+summary(data)
+nrow(data)
+
+mydata <- data
+
+# Convert data into long format using gather
+
+mydata.long <- gather(mydata, performance, movement_time, mt:er_mt)
+
+# Create factors replacing mt and er_mt with correct and error
+
+mydata.long$performance <- as.factor(ifelse(test = mydata.long$performance == "mt", yes = "correct", no = "error"))
+
+# Change order of columns
+
+mydata.long <- mydata.long[, c("animal_id", "trial_type", "performance", "perc_cor", "movement_time")]
+
+# Graphs
+comp1 <- ggplot(mydata.long, aes(x = perc_cor)) + 
+          geom_density(aes(fill = trial_type), alpha = .3) +
+          xlab("Percent Correct") +
+          ylab("Density") +
+          scale_fill_brewer(palette = "Set1", name = "Trail Type") 
+        
+
+print(comp1)
+
+comp2 <- ggplot(mydata.long, aes(x = movement_time)) + 
+          geom_density(aes(fill = trial_type), alpha = .3) +
+          xlab("Movement Time") +
+          ylab("Density") +
+          scale_fill_brewer(palette = "Set1", name = "Trail Type") 
+        
+
+print(comp2)
+
+
+```
+
+
+3. Work this code into a loop format, so that no copy & paste is neccesary.  You will need to set up a "counter" variable that cycles through various values (which do not have to be numeric), changing with every pass through the loop.  But you may also need to make other changes to your code to accommodate the loop.
+
+As usual, send me your .Rmd file with any data I need to replicate your results.
+
+```{r}
+
+for(comparison in mydata.long[,4:5]) {
+  print(ggplot(mydata.long[,4:5] , aes(x = comparison)) +
+        geom_density(aes(fill = mydata.long$trial_type), alpha = .3) +
+        ggtitle(comparison))
+}
+
+# The for loops generates the correct graphs, but the title is the name of the first value not the column and it loses what dataframe I'm in unless I say mydata.long$trial_type in aesthetic
+
+
+```
+
