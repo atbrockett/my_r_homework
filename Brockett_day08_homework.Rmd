@@ -76,14 +76,19 @@ As usual, send me your .Rmd file with any data I need to replicate your results.
 
 ```{r}
 
-for(comparison in mydata.long[,4:5]) {
-  print(ggplot(mydata.long[,4:5] , aes(x = comparison)) +
-        geom_density(aes(fill = mydata.long$trial_type), alpha = .3) +
-        ggtitle(comparison))
-}
+#for(comparison in mydata.long[,4:5]) {
+  #print(ggplot(mydata.long[,4:5] , aes(x = comparison)) +
+        #geom_density(aes(fill = mydata.long$trial_type), alpha = .3) +
+        #ggtitle(comparison))
+#}
 
 # The for loops generates the correct graphs, but the title is the name of the first value not the column and it loses what dataframe I'm in unless I say mydata.long$trial_type in aesthetic
 
+for(comparison in c("perc_cor", "movement_time")) {
+  print(ggplot(mydata.long , aes(x = get(comparison))) +
+        geom_density(aes(fill = trial_type), alpha = .3) +
+        ggtitle(comparison))
+}
 
 ```
 
