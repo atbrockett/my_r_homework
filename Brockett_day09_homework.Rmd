@@ -1,0 +1,94 @@
+---
+title: "Day 9 Homework"
+output: html_document
+---
+
+0. Tell me about something you want to either review, or something new to cover.
+
+I think it would be helpful to know how to calculate standard error and add that to graphs
+
+1. Use the `apply()` function to get the mean of several numerical columns, row-wise.  For example, imagine that you have three columns of numbers, and that you want to get the mean value for each row across the columns.  Use `apply()` to get this result and put it into a new column of your data frame.
+
+```{r}
+###################
+# Clear environment
+
+rm(list = objects())
+
+##############
+# Load library
+
+library(dplyr)
+library(tidyverse)
+
+##############
+# Read in data
+
+data <- read.csv("Brockett_HW_Dataset.csv", header = TRUE)
+summary(data)
+nrow(data)
+
+mydata <- data
+
+
+# My data doesn't really require row-wise manipulations, but this would get the mean movement time on correct and incorrect trials
+
+mydata$mtmean <- apply(mydata[,c(4:5)], MARGIN = 1, FUN = mean, na.rm = TRUE)
+
+```
+
+2. Write a small function. It can do something very, very simple.  It needs to have at least one argument.  Describe what you want it to do, write the function, and then use it on a few different cases.
+
+```{r}
+
+# Transform mt time data (s) to milliseconds
+s.to.ms <- function(arg1) {
+  output <- arg1*1000
+  return(output)
+}
+
+mydata$mt_ms <- s.to.ms(mydata$mt)
+mydata$ermt_ms <- s.to.ms(mydata$er_mt)
+
+
+# Log Transform movement time 
+norm.data <- function(arg1) {
+  output <- log(arg1)
+  return(output)
+}
+
+mydata$mt_norm <- norm.data(mydata$mt_ms)
+mydata$ermt_norm <- norm.data(mydata$ermt_ms)
+
+```
+
+3. Go back to the two things you tried to use loops for in Day 8 Homework.  Pick ONE of these things to try to "vectorize."  If you decide that something else would work better, describe some new thing you're trying to do that could be accomplished with a loop. Depending on what you were doing, this may use the `apply()` function, or the combination of `group_by()` and `do()`.  Either of these methods will likely require you to write a function first.  
+
+I'd like to be able to clean my data faster and make density plots faster, but I'm stuck on how to vectorize these operations. Because analyses with movement time are largely separate from analyses with percent correct, there aren't many operations that I need to perform on both types of data
+
+
+So first, create a function that will accomplish what you want *one* time.  Then use one of the "vectorizing" functions to apply your new function in an iterative way.  If you want your function to be applied to each row in your data frame, use `apply()` (or `rowwise()` and `mutate()`).  Otherwise, use `group_by()` to specify how to "break up" your data into "chunks", and pass your function to `do()` in order to apply your function to each chunk.
+
+I wrote a function to clean my data, and I can see how I might expand this to a bigger dataset in the future. I also wrote a function for my density plots without using a for loop
+
+Note that if you use `do()` and your function returns a data frame, the results will be a data frame.  But if you instead return some other object (like a ggplot object, or a regression object or a t-test object or something like that), then the result will be a list containing those objects.
+
+I don't think either is particularly well suited for vectorization. Maybe it's because I have a hard time thinking about iterative processes, but I really struggled with this part of the homework.
+
+```{r}
+
+density.graph <- function(data, col.name, group_var){
+            ggplot(data , aes(x = get(col.name))) +
+            geom_density(aes(fill = get(group_var)), alpha = .3) + 
+            ggtitle(col.name) +
+            xlab(col.name) +
+            scale_fill_brewer(palette = "Set1", name = group_var)
+            
+          
+}
+
+density.graph(mydata, "perc_cor", "trial_type")
+density.graph(mydata,"movement_time", "trial_type")
+
+```
+
