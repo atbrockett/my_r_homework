@@ -1,0 +1,174 @@
+---
+title: "Brockett_PSYC798W_FinalProject"
+author: "Adam"
+date: "January 19, 2018"
+output: html_document
+---
+
+Overview:
+
+The Roesch Lab is a systems neuroscience lab interested in understanding the neural circuits supporting executive functioning and learning. The majority of the data we generate is comprised of behavioral data from a variety of operant based tasks as well as single unit recordings collected while the animals perform these tasks.Behavioral and neural data are collected separately from daily recording sessions, but are then later combined using proprietary software provided by Plexon. Data is lightly processed in this software (NeuroExplorer) and ultimately rendered into a Matlab file. Each file consists of all the behavioral and neural recording information collected from one animal from a single session. These Matlab data files are then loaded individually into Matlab, time series information for all relevant comparisons are aligned for each cell. It is important to note, that one Matlab data file can contain information from multiple cells. Once all data is aligned, individually alignment data is aggregated and an Excel spreadsheet is generated where rows represent aggregated data from individual sessions. It is this data that is then processed for statistical analysis and graphing. While I am working to duplicate the process of reading and processing Matlab files into R, my final project provides code for the basic behavioral analyses that follow this processing.
+
+I am including the spreadsheet provided by Matlab that I will then manipulate with the provided code. The goal of my code is to:
+      1. chunk the original data frame into a smaller data frame containing:
+            - animal id (animal_id) 
+            - percent correct(perc_cor)
+            - movement time data for both correct and incorrect trials
+      2. Graph and analyze percent correct data
+      3. Graph and analyze movement time data
+      
+# Load libraries, read in dataset
+```{r}
+
+###################
+# Clear environment
+
+rm(list = objects())
+
+##############
+# Load library
+
+library(Rmisc)
+library(dplyr)
+library(tidyverse)
+```
+
+```{r}
+##############
+# Read in data
+
+df <- read.csv("Brockett_PSYC798W_FinalProject_Dataset.csv", header = TRUE)
+head(df)
+```
+
+# Develop a function to clean data frame
+ - Function divides original data frame (df) in five smaller data frames: percent correct (perc_cor), movement time (mt) both of which contain the complete data sets from all sessions; mean_perc_cor_by_animal and mean_mt_by_animal which group data by animal and calculate means, as has been asked for by reviewers on several occasions; mt_descriptives which utilizes the Rmisc package to group movement time data by animal id, performance, and trial type and calculate means and SE for graphing. Although the following analysis utilizes only pieces of each data frame, this function effectively parses all data for by trial and by animal analyses, depending on the goal of the intended question.
+```{r, echo = FALSE}
+
+# Function to parse data into two lists containing percent correct information and movement time information
+clean.df <- function(df = df){
+  
+  data <- df
+  data <- select(data, c("animal_id", "go_mt", "stop_mt", "st_er_mt", "go_er_mt", "perc_cor_stop", "perc_cor_gos"))
+  
+  # Subset percent correct data
+  perc_cor <- data
+  perc_cor <- select(perc_cor, c("animal_id", "perc_cor_stop", "perc_cor_gos"))
+  perc_cor <- gather(perc_cor, trial_type, perc_cor, c("perc_cor_stop", "perc_cor_gos"))
+  perc_cor$trial_type <- as.factor(ifelse(test = perc_cor$trial_type == "perc_cor_stop", yes = "stop", no = "go"))
+  
+  # Group percent correct data by animal
+  mean_perc_cor_by_animal <- group_by(perc_cor, trial_type, animal_id) %>% 
+    summarize(perc_cor = mean(perc_cor, na.rm = TRUE))
+  as.data.frame(mean_perc_cor_by_animal)
+  
+  # Subset movement time data
+  mt <- data
+  mt <- select(mt, c("animal_id", "go_mt", "stop_mt","st_er_mt", "go_er_mt"))
+  mt <- gather(mt, trial_type, mt, c("go_mt", "stop_mt", "st_er_mt", "go_er_mt"))
+  mt$trial_type <- as.factor(mt$trial_type)
+  levels(mt$trial_type) <- c("go_error", "go_correct", "stop_error", "stop_correct")
+  mt <- separate(mt, trial_type, into = c("trial_type","performance"), sep = "_")
+  mt$trial_type <- as.factor(mt$trial_type)
+  mt$performance <- as.factor(mt$performance)
+  
+  # Group movement time data by animal
+  mt_means_by_animal <- group_by(mt, trial_type, performance, animal_id) %>% summarize(mt = mean(mt, na.rm = TRUE))
+  as.data.frame(mt_means_by_animal)
+  
+  # Calculate descriptive statistics for graphing of movement time data
+  mt_descriptives <- summarySEwithin(mt_means_by_animal, measurevar = "mt", withinvars = c("trial_type", "performance"), idvar = "animal_id")
+  mt_descriptives
+  
+ 
+  return(list(perc_cor, mean_perc_cor_by_animal, mt, mt_means_by_animal, mt_descriptives )) 
+  
+}
+```
+
+
+## 1. Clean data frame
+  - Apply function to clean data frame and generate the 5 data frames described above
+```{r}
+# Clean data frame using function
+
+mydata <- clean.df(df)
+
+# Create new data frames for analysis
+
+# Percent Correct Data Frame
+
+perc_cor <- as.data.frame(mydata[[1]])
+
+# Mean Percent Correct by Animal Dataframe
+
+mean_perc_cor_by_animal <- as.data.frame(mydata[[2]])
+
+# Movement Time Data Frame
+
+mt <- as.data.frame(mydata[[3]])
+
+# Mean Movement Time by Animal Dataframe
+
+mean_mt_by_animal <- as.data.frame(mydata[[4]])
+
+# Descriptive data about Movement Times(with SE)
+
+mt_descriptives <- as.data.frame(mydata[[5]])
+
+
+
+```
+
+# 2a. Graph percent correct data (boxplot)
+
+```{r}
+
+perc_cor_plot <- ggplot(data = mean_perc_cor_by_animal, aes(x = trial_type, y = perc_cor)) +
+  geom_boxplot(aes(fill = trial_type)) +
+  xlab("Trial Type") +
+  ylab("Percent Correct") +
+  scale_fill_brewer(palette = "Set1", name = "Trial Type")
+print(perc_cor_plot)
+
+```
+
+# 2b. Analyze percent correct data
+  - paired t-test comparing performance on go and stop trials
+
+```{r}
+
+ttest_perc_cor <- t.test(perc_cor ~ trial_type, paired = TRUE, data = mean_perc_cor_by_animal)
+print(ttest_perc_cor)  
+
+```
+
+# 3a. Graph movement time data (line graph)
+
+```{r}
+
+mt_plot <- ggplot(data = mt_descriptives, aes(x = trial_type, y = mt, color = performance, group = performance)) + 
+          stat_summary(fun.y = mean, geom = "point") +
+          stat_summary(fun.y = mean, geom = "line") +
+          geom_errorbar(width = .1, aes(ymin = mt - se, ymax = mt + se)) +
+          xlab("Trial Type") +
+          ylab("Movement Time") +
+          scale_color_brewer(palette = "Set1", name = "Performance")
+ 
+print(mt_plot) 
+
+
+```
+
+# 3b. Analyze movement time data
+  - repeated measures ANOVA compairing movemnt times as a function of trial type and performance
+
+```{r}
+
+aov_mt = aov(mt ~ trial_type * performance + Error(animal_id/ (trial_type*performance)), data = mean_mt_by_animal)
+summary(aov_mt)
+
+```
+
+
+```
